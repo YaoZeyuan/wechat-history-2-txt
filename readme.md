@@ -6,4 +6,8 @@
 
 # 将微信数据库转为txt
 
-- 本项目在做的事
+> 感谢trae，6小时搞定全套流程(含debug)
+
+1.  将解密后的微信数据库放在项目目录下, 命名为 `decryption_en_micro_msg.sqlite3`
+2.  依次执行以下命令：`pnpm install`(安装必要依赖) / `pnpm prisma`(初始化数据库元信息) / `pnpm export`
+3.  在output文件夹中，查看导出的txt文件
