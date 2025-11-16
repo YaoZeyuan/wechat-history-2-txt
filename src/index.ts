@@ -1,6 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
+import dotenv from 'dotenv'
+
+const envUrl = path.resolve(".", ".env")
+const env = dotenv.config({
+  "path": envUrl
+}).parsed as any
+
+const rawDbUrl = env.DATABASE_URL
+const rawDbPathUrl = rawDbUrl.split("file:")[1]
+const dbUrl = path.resolve(rawDbPathUrl)
 
 const prisma = new PrismaClient()
 
@@ -77,7 +87,7 @@ async function exportLists(outDir: string, contacts: Map<string, string>, chatro
 }
 
 async function main() {
-  const dbPath = path.resolve(process.cwd(), 'decryption_en_micro_msg.sqlite')
+  const dbPath = dbUrl
   if (!fs.existsSync(dbPath)) {
     throw new Error(`数据库文件未找到: ${dbPath}`)
   }
