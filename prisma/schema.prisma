@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"  
 }
 
 datasource db {
@@ -7,12 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UserInfo {
-  id    Int    @id
-  type  Int?
-  value String?
-  @@map("userinfo")
-}
 
 model RContact {
   username           String  @id

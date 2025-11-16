@@ -1,12 +1,18 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '../../generated/prisma'
 
 /**
  * 获取自身的微信 id 与昵称
  */
 export async function fetchSelfInfo(prisma: PrismaClient) {
-  const rows = await prisma.$queryRaw<Array<{ id: number; value: string }>>`SELECT id, value FROM userinfo`
-  const selfId = rows.find(r => r.id === 2)?.value || ''
-  const selfNickname = rows.find(r => r.id === 4)?.value || selfId || '我'
+  const t = await prisma.$queryRaw<Array<{ name: string }>>`SELECT name FROM sqlite_master WHERE type='table' AND name='userinfo'`
+  if (t.length) {
+    const rows = await prisma.$queryRaw<Array<{ id: number; value: string }>>`SELECT id, value FROM userinfo`
+    const selfId = rows.find(r => r.id === 2)?.value || process.env.SELF_ID || ''
+    const selfNickname = rows.find(r => r.id === 4)?.value || process.env.SELF_NICKNAME || selfId || '我'
+    return { selfId, selfNickname }
+  }
+  const selfId = process.env.SELF_ID || ''
+  const selfNickname = process.env.SELF_NICKNAME || selfId || '我'
   return { selfId, selfNickname }
 }
 

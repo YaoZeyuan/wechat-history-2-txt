@@ -4,3 +4,4 @@ dist
 decryption_en_micro_msg.sqlite3
 *.sqlite3
 *.env
+output

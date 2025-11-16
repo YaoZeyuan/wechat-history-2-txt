@@ -8,9 +8,8 @@ import dotenv from 'dotenv'
 export function loadEnvConfig() {
   const envUrl = path.resolve('.', '.env')
   const parsed = dotenv.config({ path: envUrl }).parsed as any
-  const rawDbUrl: string = parsed?.DATABASE_URL || process.env.DATABASE_URL || 'file:./decryption_en_micro_msg.sqlite'
-  const rawDbPathUrl = rawDbUrl.split('file:')[1]
-  const dbPath = path.resolve(rawDbPathUrl)
+  const rawDbUrl: string = parsed?.DATABASE_URL || './decryption_en_micro_msg.sqlite3'
+  const dbPath = path.resolve(rawDbUrl)
   const outDir = path.resolve(process.cwd(), 'output')
   return { dbPath, outDir }
 }
