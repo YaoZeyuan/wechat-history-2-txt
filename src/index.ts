@@ -61,8 +61,8 @@ function parseArgs() {
     const v = args[i].includes('=') ? args[i].split('=')[1] : args[i + 1]
     return v
   }
-  const uidArg = get('uid')
-  const typeArg = get('type') || 'all'
+  const uidArg = get('uid') ?? process.env.EXPORT_UIDS
+  const typeArg = get('type') ?? process.env.EXPORT_TYPE ?? 'all'
   const uids = uidArg ? uidArg.split(',').map(s => s.trim()).filter(Boolean) : []
   return { uids, type: typeArg as 'contact' | 'chatroom' | 'all' }
 }
