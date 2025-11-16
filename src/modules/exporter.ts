@@ -83,7 +83,7 @@ export async function exportChatContent(params: ExportChatParams) {
   for (const it of items) {
     const month = formatMonth(it.time)
     const ts = formatDate(it.time)
-    const line = `${ts} ${it.sender} ${it.content}`
+    const line = `${it.sender} ${ts}\n${it.content}`
     const arr = months.get(month) || []
     arr.push(line)
     months.set(month, arr)

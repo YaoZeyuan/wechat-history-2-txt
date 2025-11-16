@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../generated/prisma'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * 获取自身的微信 id 与昵称
