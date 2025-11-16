@@ -1,3 +1,4 @@
 node_modules
 .trae
 dist
+decryption_en_micro_msg.sqlite
