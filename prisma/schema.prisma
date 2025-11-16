@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"  
 }
 
 datasource db {
@@ -42,7 +41,7 @@ model RContact {
 
 model Message {
   msgId              Int     @id
-  msgSvrId           BigInt?
+  msgSvrId           BigInt
   type               Int
   status             Int?
   isSend             Int
