@@ -7,6 +7,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Dummy {
-  id Int @id @default(autoincrement())
+model UserInfo {
+  id    Int    @id
+  value String?
+  @@map("userinfo")
+}
+
+model RContact {
+  username   String  @id
+  conRemark  String?
+  nickname   String?
+  type       Int?
+  verifyFlag Int?
+  reserved1  String?
+  reserved2  String?
+  @@map("rcontact")
+}
+
+model Message {
+  msgSvrId   String  @id
+  type       Int
+  isSend     Int
+  createTime BigInt
+  talker     String
+  content    Bytes?
+  imgPath    String?
+  @@map("message")
+}
+
+model ChatRoom {
+  chatroomname String  @id
+  displayname  String?
+  memberlist   String?
+  roomowner    String?
+  @@map("chatroom")
+}
+
+model ImgFlag {
+  username String  @id
+  reserved1 String?
+  reserved2 String?
+  @@map("img_flag")
+}
+
+model EmojiInfoDesc {
+  md5     String @id
+  groupid Int?
+}
+
+model EmojiInfo {
+  md5         String @id
+  catalog     Int?
+  name        String?
+  cdnUrl      String?
+  encrypturl  String?
+  aeskey      String?
+}
+
+model ImgInfo2 {
+  msgSvrId   String @id
+  bigImgPath String?
 }
