@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "pnpm prisma && pnpm export",
     "export": "bun src/index.ts",
     "prisma": "prisma generate"
   },
