@@ -92,7 +92,7 @@ export async function exportChatContent(params: ExportChatParams) {
   let batchStart: string | null = null
   let batchEnd: string | null = null
   let batchLines: string[] = []
-  const limit = 100000
+  const limit = 10000
   for (const [month, lines] of orderedMonths) {
     if (lines.length <= limit) {
       if (batchLines.length + lines.length <= limit) {
