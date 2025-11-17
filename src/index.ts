@@ -1,6 +1,6 @@
 import { ensureDbFile, loadEnvConfig, parseSelectionArgs } from './modules/config.js'
 import { prisma } from './modules/db.js'
-import { formatDate, formatMonth, sanitizeFileName, mapContentByType } from './modules/utils/format.js'
+import { getContentTypeDemo } from './modules/utils/format.js'
 import { fetchContacts, fetchChatrooms, fetchSelfInfo } from './modules/services/contacts.js'
 import { exportLists, exportChatContent } from './modules/exporter.js'
 import path from 'path'
