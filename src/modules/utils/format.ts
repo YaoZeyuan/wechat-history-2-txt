@@ -68,6 +68,7 @@ function tryExtractQuote(content: string): string | null {
   return `${ref}\n-----\n${title}`
 }
 
+const db: any = {}
 
 /**
  * 消息类型映射为展示内容
@@ -99,7 +100,39 @@ export function mapContentByType(type: number, content: string): string {
     case 822083633:
       // 引用消息
       return tryExtractQuote(content) ?? content
+    case 48:
+      return '[位置信息]'
+    case 50:
+      return '[语音通话]'
+    case 62:
+      return '[微信名片]'
+    case 66:
+      return '[微信名片]'
+    case 10000:
+      return '[微信支付]'
+    case 1048625:
+    case 16777265:
+    case 486539313:
+    case 754974769:
+    case 805306417:
+    case 1040187441:
+    case 1107296305:
+      return tryExtractXmlQuote(content) ?? content
+    case 268445456:
+      return content
+    case 469762097:
+    case 536870961:
+    case 570425393:
+    case 704643121:
+    case 771751985:
+    case 922746929:
+    case 973078577:
+    case 1077936177:
+    case -1879048186:
+      return tryExtractQuote(content) ?? content
     default:
+      db[`${type}`] = content
+      console.log(JSON.stringify(db, null, 2))
       return content || '[未知类型]'
   }
 }
