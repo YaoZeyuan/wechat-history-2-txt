@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser'
 import * as TypeConst from './type_const.js'
+import he from 'he'
 
 /**
  * 将毫秒时间戳格式化为 yyyy-MM-dd HH:mm:ss
@@ -127,7 +128,19 @@ function extractXmlContent(content: string, type: number) {
       {
         const currentTitle = doc['msg']['appmsg']['title']
         const refferInfo = doc['msg']['appmsg']['refermsg']
-        const refferText = getXmlMessageTitle(refferInfo['content'])
+        const bufReffer = refferInfo["content"]
+        let refferText = getXmlMessageTitle(he.decode(`${bufReffer}`));
+        if (typeof refferText === 'object') {
+          refferText = "较复杂的引用消息，略过"
+        }
+        if (typeof refferText === 'string') {
+          if (refferText.includes("imgsourceurl") || refferText.includes("<img")) {
+            refferText = '[图片]'
+          }
+          if (refferText?.includes("<msg") || refferText?.includes("xml")) {
+            refferText = "较复杂的引用消息，略过"
+          }
+        }
         return `${refferText}\n----\n${currentTitle}`
       }
     case TypeConst.Type_48_位置信息:
