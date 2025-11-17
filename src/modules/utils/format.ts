@@ -112,8 +112,11 @@ function extractXmlContent(content: string, type: number) {
         const text = doc['msg']['appmsg']['title']
         return `[分享卡片:${text}]`
       }
-    case TypeConst.Type_10000_微信支付:
-      return `[微信支付:${doc['_wc_custom_link_']['#text']}]`
+    case TypeConst.Type_10000_置顶消息:
+      {
+        const action = content.split("</_wc_custom_link_>\"")[1]
+        return `[${doc['_wc_custom_link_']?.['#text'] ?? ""}${action}]`
+      }
     case TypeConst.Type_436207665_微信红包:
       return `[微信红包:${doc['msg']['appmsg']['wcpayinfo']['sendertitle']}]`
     case TypeConst.Type_419430449_微信转账:
@@ -156,11 +159,52 @@ function extractXmlContent(content: string, type: number) {
       return `[亲属卡:${doc['msg']['appmsg']['title']}-${doc['msg']['appmsg']['des']}]`
     case TypeConst.Type_570425393_邀请加入群聊:
       {
-        const name = doc['sysmsg']['sysmsgtemplate']['content_template']['link_list']['link'][0]['memberlist']['nickname']
-        const history = doc['sysmsg']['sysmsgtemplate']['content_template']['link_list']['link'][2]['title']
-        const template = doc['sysmsg']['sysmsgtemplate']['content_template']['template']
-        const realText = template.replace("$names$", name).replace("$history$", history).replace("$revoke$", "")
-        return realText
+
+        switch (doc["sysmsg"]["@_type"]) {
+          case `sysmsgtemplate`: {
+            const keyValueList: { key: string, value: string }[] = [];
+            const linkValueList =
+              doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+              "link"
+              ];
+            for (const item of linkValueList) {
+              const key = item["@_name"];
+              let value = "";
+              if (item?.["memberlist"]?.["member"]?.["nickname"] === undefined) {
+                value = item.title;
+              } else {
+                value = item["memberlist"]["member"]["nickname"];
+              }
+              keyValueList.push({
+                key,
+                value,
+              });
+            }
+
+            const template =
+              doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"];
+            let realText = template;
+            for (const item of keyValueList) {
+              realText = realText.replace(`$${item.key}$`, item.value);
+            }
+            return realText;
+          }
+        }
+        const name =
+          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+          "link"
+          ][0]["memberlist"]["nickname"];
+        const history =
+          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+          "link"
+          ][2]["title"];
+        const template =
+          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"];
+        const realText = template
+          .replace("$names$", name)
+          .replace("$history$", history)
+          .replace("$revoke$", "");
+        return realText;
       }
     case TypeConst.Type_704643121_待接收转账:
       return "[你有一笔待接收的转账]"
