@@ -4,13 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
     "export": "bun src/index.ts",
     "prisma": "prisma generate"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
   "dependencies": {
