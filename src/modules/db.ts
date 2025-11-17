@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import * as config from './config'
+import * as config from './config.js'
 
 const dbConfig = config.loadEnvConfig()
 console.log("dbConfig.dbPath => ", dbConfig.dbPath)

@@ -29,6 +29,46 @@ export function sanitizeFileName(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, '_')
 }
 
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+function tryExtractXmlQuote(content: string): string | null {
+  const trimmed = content.trim()
+  if (!trimmed.startsWith('<?xml')) return null
+  if (!/<msg/.test(trimmed)) return null
+  if (!/<appmsg/.test(trimmed)) return null
+  if (!/<refermsg/.test(trimmed)) return null
+  const titleMatch = trimmed.match(/<title>([\s\S]*?)<\/title>/)
+  const refMatch = trimmed.match(/<refermsg[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/refermsg>/)
+  if (!titleMatch || !refMatch) return null
+  const title = decodeXmlEntities(titleMatch[1])
+  const ref = decodeXmlEntities(refMatch[1])
+  return `${ref}\n-----\n${title}`
+}
+
+function tryExtractQuote(content: string): string | null {
+  const trimmed = content.trim()
+  if (!/<msg/.test(trimmed)) return null
+  if (!/<appmsg/.test(trimmed)) return null
+  if (!/<refermsg/.test(trimmed)) return null
+  const titleMatch = trimmed.match(/<title>([\s\S]*?)<\/title>/)
+  let refMatch = trimmed.match(/<refermsg[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/refermsg>/)
+  if (refMatch?.includes("<?xml")) {
+    refMatch = ['较复杂的引用消息，略过']
+  }
+  if (!titleMatch || !refMatch) return null
+  const title = decodeXmlEntities(titleMatch[1])
+  const ref = decodeXmlEntities(refMatch[1])
+  return `${ref}\n-----\n${title}`
+}
+
+
 /**
  * 消息类型映射为展示内容
  */
@@ -40,10 +80,12 @@ export function mapContentByType(type: number, content: string): string {
       return '[图片]'
     case 34:
       return '[语音]'
+    case 42:
+      return '[服务号名片]'
     case 43:
       return '[视频]'
     case 47:
-      return '[大表情]'
+      return '[表情]'
     case 49:
       return '[分享卡片]'
     case 1000:
@@ -54,6 +96,9 @@ export function mapContentByType(type: number, content: string): string {
       return '[微信转账]'
     case 1090519089:
       return '[文件]'
+    case 822083633:
+      // 引用消息
+      return tryExtractQuote(content) ?? content
     default:
       return content || '[未知类型]'
   }

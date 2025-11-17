@@ -1,8 +1,8 @@
 import { ensureDbFile, loadEnvConfig, parseSelectionArgs } from './modules/config.js'
-import { prisma } from './modules/db'
+import { prisma } from './modules/db.js'
 import { formatDate, formatMonth, sanitizeFileName, mapContentByType } from './modules/utils/format.js'
 import { fetchContacts, fetchChatrooms, fetchSelfInfo } from './modules/services/contacts.js'
-import { exportLists, exportChatContent } from './modules/exporter'
+import { exportLists, exportChatContent } from './modules/exporter.js'
 import path from 'path'
 import fs from 'fs'
 
@@ -13,6 +13,7 @@ async function main() {
   const { selfId, selfNickname } = await fetchSelfInfo(prisma)
   const contacts = await fetchContacts(prisma)
   const chatrooms = await fetchChatrooms(prisma, contacts)
+
 
   await exportLists(outDir, contacts, chatrooms)
 

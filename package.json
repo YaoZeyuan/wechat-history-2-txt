@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm prisma && pnpm export",
-    "export": "bun src/index.ts",
+    "dev": "pnpm prisma && pnpm build && pnpm export",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "export": "node dist/index.js",
     "prisma": "prisma generate"
   },
   "devDependencies": {
