@@ -86,17 +86,23 @@ function getXmlMessageTitle(content: string) {
 }
 
 function extractXmlContent(content: string, type: number) {
-  let doc = content
-  if ([
-    TypeConst.Type_1_文本,
-    TypeConst.Type_3_图片,
-    TypeConst.Type_34_语音,
-    TypeConst.Type_62_语音消息
-  ].includes(type) === false) {
+  let doc: any = content
+  if (
+    [
+      TypeConst.Type_1_文本,
+      TypeConst.Type_3_图片,
+      TypeConst.Type_34_语音,
+      TypeConst.Type_62_语音消息,
+    ].includes(type) === false
+  ) {
     try {
       doc = parser.parse(content)
     } catch (e) {
-      console.log("❌")
+      try {
+        doc = parser.parse(he.decode(content))
+      } catch (e) {
+        console.log("❌")
+      }
     }
   }
   switch (type) {
@@ -105,78 +111,24 @@ function extractXmlContent(content: string, type: number) {
     case TypeConst.Type_3_图片:
       return "[图片]"
     case TypeConst.Type_34_语音:
-    case TypeConst.Type_62_语音消息:
-      {
-        const msLength = Number.parseInt(content.split(":")[1])
-        const second = Math.floor(msLength / 1000)
-        return `[语音:${second}s]`
-      }
-    case TypeConst.Type_42_服务号名片:
-      {
-        const nickname = doc['msg']['@_nickname']
-        return `[服务号名片:${nickname}]`
-      }
-    case TypeConst.Type_43_视频:
-      {
-        const msLength = Number.parseInt(content.split(":")[1])
-        const second = Math.floor(msLength / 1000)
-        return `[视频:${second}s]`
-      }
+    case TypeConst.Type_62_语音消息: {
+      const msLength = Number.parseInt(content.split(":")[1])
+      const second = Math.floor(msLength / 1000)
+      return `[语音:${second}s]`
+    }
+    case TypeConst.Type_43_视频: {
+      const msLength = Number.parseInt(content.split(":")[1])
+      const second = Math.floor(msLength / 1000)
+      return `[视频:${second}s]`
+    }
     case TypeConst.Type_47_表情:
       return "[表情]"
-    case TypeConst.Type_49_分享卡片:
-      {
-        const text = doc['msg']['appmsg']['title']
-        return `[分享卡片:${text}]`
-      }
-    case TypeConst.Type_10000_置顶消息:
-      {
-        const action = content.split("</_wc_custom_link_>\"")[1]
-        return `[${doc['_wc_custom_link_']?.['#text'] ?? ""}${action}]`
-      }
-    case TypeConst.Type_436207665_微信红包:
-      return `[微信红包:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["sendertitle"] || ""
-        }]`;
-    case TypeConst.Type_419430449_微信转账:
-      return `[微信转账:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["feedesc"] || ""
-        }-${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["pay_memo"] || ""}]`;
-    case TypeConst.Type_1090519089_文件:
-      return `[微信文件:${doc?.['msg']?.['appmsg']?.['title'] || ""}]`
-    case TypeConst.Type_822083633_引用消息:
-      {
-        const currentTitle = doc['msg']['appmsg']['title']
-        const refferInfo = doc['msg']['appmsg']['refermsg']
-        const bufReffer = refferInfo["content"]
-        let refferText = getXmlMessageTitle(he.decode(`${bufReffer}`));
-        if (typeof refferText === 'object') {
-          refferText = "较复杂的引用消息，略过"
-        }
-        if (typeof refferText === 'string') {
-          if (refferText.includes("imgsourceurl") || refferText.includes("<img")) {
-            refferText = '[图片]'
-          }
-          if (refferText?.includes("<msg") || refferText?.includes("xml")) {
-            refferText = "较复杂的引用消息，略过"
-          }
-        }
-        return `${refferText}\n----\n${currentTitle}`
-      }
-    case TypeConst.Type_48_位置信息:
-      return `[位置信息:${doc['msg']['location']['@_poiname']}]`
     case TypeConst.Type_50_语音通话:
       return "[语音通话]"
-    case TypeConst.Type_66_微信名片:
-      return `[微信名片:${doc['msg']['@_nickname']}]`
     case TypeConst.Type_1048625_xml1:
     case TypeConst.Type_16777265_xml2:
     case TypeConst.Type_486539313_xml3:
       return `[未识别消息:${getXmlMessageTitle(content)}]`
-    case TypeConst.Type_754974769_xml4:
-      {
-        const nickname = doc['msg']['appmsg']['finderFeed']['nickname']
-        const desc = doc['msg']['appmsg']['finderFeed']['desc']
-        return `[当前微信版本不支持展示该内容，请升级至最新版本: ${nickname} => ${desc}]`
-      }
     case TypeConst.Type_805306417_接龙:
       return `${getXmlMessageTitle(content)}`
     case TypeConst.Type_1040187441_歌曲:
@@ -184,76 +136,138 @@ function extractXmlContent(content: string, type: number) {
     case TypeConst.Type_1107296305_群公告:
     case TypeConst.Type_268445456_撤回消息:
       return content
-    case TypeConst.Type_469762097_微信红包:
-      return `[微信红包:${doc['msg']['des']}]`
-    case TypeConst.Type_536870961_亲属卡:
-      return `[亲属卡:${doc['msg']['appmsg']['title']}-${doc['msg']['appmsg']['des']}]`
-    case TypeConst.Type_570425393_邀请加入群聊:
-      {
-
-        switch (doc["sysmsg"]["@_type"]) {
-          case `sysmsgtemplate`: {
-            const keyValueList: { key: string, value: string }[] = [];
-            const linkValueList =
-              doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
-              "link"
-              ];
-            for (const item of linkValueList) {
-              const key = item["@_name"];
-              let value = "";
-              if (item?.["memberlist"]?.["member"]?.["nickname"] === undefined) {
-                value = item.title;
-              } else {
-                value = item["memberlist"]["member"]["nickname"];
-              }
-              keyValueList.push({
-                key,
-                value,
-              });
-            }
-
-            const template =
-              doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"];
-            let realText = template;
-            for (const item of keyValueList) {
-              realText = realText.replace(`$${item.key}$`, item.value);
-            }
-            return realText;
-          }
-        }
-        const name =
-          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
-          "link"
-          ][0]["memberlist"]["nickname"];
-        const history =
-          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
-          "link"
-          ][2]["title"];
-        const template =
-          doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"];
-        const realText = template
-          .replace("$names$", name)
-          .replace("$history$", history)
-          .replace("$revoke$", "");
-        return realText;
-      }
     case TypeConst.Type_704643121_待接收转账:
       return "[你有一笔待接收的转账]"
     case TypeConst.Type_771751985_不支持的内容:
     case TypeConst.Type_922746929_不支持的内容:
-      return `[当前微信版本不支持展示该内容，请升级至最新版本]`
-      return ""
-    case TypeConst.Type_973078577_直播卡片:
-      return `[直播卡片-${doc['msg']['appmsg']['finderLive']['nickname']}:${doc['msg']['appmsg']['finderLive']['desc']}]`
-    case TypeConst.Type_1077936177_音乐卡片:
-      return `音乐卡片: ${doc['msg']['appmsg']['TPMediaInfoDesc']['songName']}`
+      return `[当前微信版本不支持展示该内容，请升级至最新版本]`;
     case TypeConst.Type_1879048186_位置共享:
-      return "[位置共享]"
-    default:
-      return content || '未知内容'
+      return "[位置共享]";
   }
 
+  // 以下都依赖doc成功解析
+  if (typeof doc === 'string') {
+    console.log("❌类型不正确，解析失败, 自动跳过", { content, type })
+    return ""
+  }
 
+  switch (type) {
+    case TypeConst.Type_42_服务号名片: {
+      const nickname = doc["msg"]["@_nickname"];
+      return `[服务号名片:${nickname}]`;
+    }
+    case TypeConst.Type_49_分享卡片: {
+      const text = doc["msg"]["appmsg"]["title"];
+      return `[分享卡片:${text}]`;
+    }
+    case TypeConst.Type_10000_置顶消息: {
+      const action = content.split('</_wc_custom_link_>"')[1];
+      return `[${doc["_wc_custom_link_"]?.["#text"] ?? ""}${action}]`;
+    }
+    case TypeConst.Type_436207665_微信红包:
+      return `[微信红包:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["sendertitle"] || ""
+        }]`;
+    case TypeConst.Type_419430449_微信转账:
+      return `[微信转账:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["feedesc"] || ""
+        }-${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["pay_memo"] || ""}]`;
+    case TypeConst.Type_1090519089_文件:
+      return `[微信文件:${doc?.["msg"]?.["appmsg"]?.["title"] || ""}]`;
+    case TypeConst.Type_822083633_引用消息: {
+      try {
+        const currentTitle = doc["msg"]["appmsg"]["title"];
+        const refferInfo = doc["msg"]["appmsg"]["refermsg"];
+        const bufReffer = refferInfo["content"];
+        let refferText = getXmlMessageTitle(he.decode(`${bufReffer}`));
+        if (typeof refferText === "object") {
+          refferText = "较复杂的引用消息，略过";
+        }
+        if (typeof refferText === "string") {
+          if (
+            refferText.includes("imgsourceurl") ||
+            refferText.includes("<img")
+          ) {
+            refferText = "[图片]";
+          }
+          if (refferText?.includes("<msg") || refferText?.includes("xml")) {
+            refferText = "较复杂的引用消息，略过";
+          }
+        }
+        return `${refferText}\n----\n${currentTitle}`;
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    case TypeConst.Type_48_位置信息:
+      return `[位置信息:${doc["msg"]["location"]["@_poiname"]}]`;
+
+    case TypeConst.Type_66_微信名片:
+      return `[微信名片:${doc["msg"]["@_nickname"]}]`;
+
+    case TypeConst.Type_754974769_xml4: {
+      const nickname = doc["msg"]["appmsg"]["finderFeed"]["nickname"];
+      const desc = doc["msg"]["appmsg"]["finderFeed"]["desc"];
+      return `[当前微信版本不支持展示该内容，请升级至最新版本: ${nickname} => ${desc}]`;
+    }
+
+    case TypeConst.Type_469762097_微信红包:
+      return `[微信红包:${doc["msg"]["des"]}]`;
+    case TypeConst.Type_536870961_亲属卡:
+      return `[亲属卡:${doc["msg"]["appmsg"]["title"]}-${doc["msg"]["appmsg"]["des"]}]`;
+    case TypeConst.Type_570425393_邀请加入群聊: {
+      switch (doc["sysmsg"]["@_type"]) {
+        case `sysmsgtemplate`: {
+          const keyValueList: { key: string, value: string }[] = []
+          const linkValueList =
+            doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+            "link"
+            ]
+          for (const item of linkValueList) {
+            const key = item["@_name"]
+            let value = ""
+            if (item?.["memberlist"]?.["member"]?.["nickname"] === undefined) {
+              value = item.title
+            } else {
+              value = item["memberlist"]["member"]["nickname"]
+            }
+            keyValueList.push({
+              key,
+              value,
+            })
+          }
+          const template =
+            doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"]
+          let realText = template
+          for (const item of keyValueList) {
+            realText = realText.replace(`$${item.key}$`, item.value)
+          }
+          return realText;
+        }
+      }
+      const name =
+        doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+        "link"
+        ][0]["memberlist"]["nickname"];
+      const history =
+        doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
+        "link"
+        ][2]["title"];
+      const template =
+        doc["sysmsg"]["sysmsgtemplate"]["content_template"]["template"];
+      const realText = template
+        .replace("$names$", name)
+        .replace("$history$", history)
+        .replace("$revoke$", "");
+      return realText;
+    }
+
+    case TypeConst.Type_973078577_直播卡片:
+      return `[直播卡片-${doc["msg"]["appmsg"]["finderLive"]["nickname"]}:${doc["msg"]["appmsg"]["finderLive"]["desc"]}]`;
+    case TypeConst.Type_1077936177_音乐卡片:
+      return `音乐卡片: ${doc["msg"]["appmsg"]["TPMediaInfoDesc"]["songName"]}`;
+
+    default:
+      return content || "未知内容";
+  }
 }
 
 const db: Record<string, string> = {}
