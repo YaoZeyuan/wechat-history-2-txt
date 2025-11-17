@@ -59,7 +59,8 @@ function tryExtractQuote(content: string): string | null {
   if (!/<refermsg/.test(trimmed)) return null
   const titleMatch = trimmed.match(/<title>([\s\S]*?)<\/title>/)
   let refMatch = trimmed.match(/<refermsg[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/refermsg>/)
-  if (refMatch?.includes("<?xml")) {
+  // todo 解析失败，再看下
+  if (refMatch?.includes("xml") || refMatch?.includes("msg")) {
     refMatch = ['较复杂的引用消息，略过']
   }
   if (!titleMatch || !refMatch) return null
