@@ -77,12 +77,28 @@ const parser = new XMLParser({
   ignoreAttributes: false
 })
 function getXmlMessageTitle(content: string) {
-  const doc = parser.parse(content)
-  return doc?.['msg']?.['appmsg']?.['title'] || content
+  try {
+    const doc = parser.parse(content)
+    return doc?.['msg']?.['appmsg']?.['title'] || content
+  } catch (e) {
+    return content
+  }
 }
 
 function extractXmlContent(content: string, type: number) {
-  const doc = parser.parse(content)
+  let doc = content
+  if ([
+    TypeConst.Type_1_文本,
+    TypeConst.Type_3_图片,
+    TypeConst.Type_34_语音,
+    TypeConst.Type_62_语音消息
+  ].includes(type) === false) {
+    try {
+      doc = parser.parse(content)
+    } catch (e) {
+      console.log("❌")
+    }
+  }
   switch (type) {
     case TypeConst.Type_1_文本:
       return content
@@ -119,11 +135,13 @@ function extractXmlContent(content: string, type: number) {
         return `[${doc['_wc_custom_link_']?.['#text'] ?? ""}${action}]`
       }
     case TypeConst.Type_436207665_微信红包:
-      return `[微信红包:${doc['msg']['appmsg']['wcpayinfo']['sendertitle']}]`
+      return `[微信红包:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["sendertitle"] || ""
+        }]`;
     case TypeConst.Type_419430449_微信转账:
-      return `[微信转账:${doc['msg']['appmsg']['wcpayinfo']['feedesc']}-${doc['msg']['appmsg']['wcpayinfo']['pay_memo']}]`
+      return `[微信转账:${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["feedesc"] || ""
+        }-${doc["msg"]?.["appmsg"]?.["wcpayinfo"]?.["pay_memo"] || ""}]`;
     case TypeConst.Type_1090519089_文件:
-      return `[微信文件:${doc['msg']['appmsg']['title']}]`
+      return `[微信文件:${doc?.['msg']?.['appmsg']?.['title'] || ""}]`
     case TypeConst.Type_822083633_引用消息:
       {
         const currentTitle = doc['msg']['appmsg']['title']
