@@ -178,13 +178,18 @@ function extractXmlContent(content: string, type: number) {
     case TypeConst.Type_536870961_亲属卡:
       return `[亲属卡:${doc["msg"]["appmsg"]["title"]}-${doc["msg"]["appmsg"]["des"]}]`;
     case TypeConst.Type_570425393_邀请加入群聊: {
+      // 加人/踢人
       switch (doc["sysmsg"]["@_type"]) {
         case `sysmsgtemplate`: {
           const keyValueList: { key: string, value: string }[] = []
-          const linkValueList =
+          let linkValueList =
             doc["sysmsg"]["sysmsgtemplate"]["content_template"]["link_list"][
             "link"
             ]
+          // 确保为数组
+          if (Array.isArray(linkValueList) === false) {
+            linkValueList = [linkValueList]
+          }
           for (const item of linkValueList) {
             const key = item["@_name"]
             let value = ""
