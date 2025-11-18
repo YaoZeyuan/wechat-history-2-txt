@@ -146,4 +146,7 @@ export async function exportChatContent(params: ExportChatParams) {
     const fname = `${batchStart}-${batchEnd}.txt`
     fs.writeFileSync(path.join(chatDir, fname), batchLines.join('\n'), { encoding: 'utf8' })
   }
+  // 输出全量聊天配置
+  const allRecordFileName = `all-record.json`
+  fs.writeFileSync(path.join(chatDir, allRecordFileName), JSON.stringify(items, null, 2), { encoding: 'utf8' })
 }

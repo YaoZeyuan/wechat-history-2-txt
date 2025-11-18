@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser'
 import * as TypeConst from './type_const.js'
+import dayjs from 'dayjs'
 import he from 'he'
 
 /**
@@ -20,18 +21,13 @@ export function formatDate(tsMs: number): string {
  * 将毫秒时间戳格式化为 yyyy-MM
  */
 export function formatMonth(tsMs: number): string {
-  const d = new Date(tsMs)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  return `${y}-${m}`
+  const time = dayjs(tsMs)
+  return `${time.format("YYYY-MM")}`
 }
 
 export function formatYmd(tsMs: number): string {
-  const d = new Date(tsMs)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const time = dayjs(tsMs)
+  return `${time.format("YYYY-MM-DD")}`
 }
 
 /**
@@ -39,46 +35,6 @@ export function formatYmd(tsMs: number): string {
  */
 export function sanitizeFileName(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, '_')
-}
-
-function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-}
-
-function tryExtractXmlQuote(content: string): string | null {
-  const trimmed = content.trim()
-  if (!trimmed.startsWith('<?xml')) return null
-  if (!/<msg/.test(trimmed)) return null
-  if (!/<appmsg/.test(trimmed)) return null
-  if (!/<refermsg/.test(trimmed)) return null
-  const titleMatch = trimmed.match(/<title>([\s\S]*?)<\/title>/)
-  const refMatch = trimmed.match(/<refermsg[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/refermsg>/)
-  if (!titleMatch || !refMatch) return null
-  const title = decodeXmlEntities(titleMatch[1])
-  const ref = decodeXmlEntities(refMatch[1])
-  return `${ref}\n-----\n${title}`
-}
-
-function tryExtractQuote(content: string): string | null {
-  const trimmed = content.trim()
-  if (!/<msg/.test(trimmed)) return null
-  if (!/<appmsg/.test(trimmed)) return null
-  if (!/<refermsg/.test(trimmed)) return null
-  const titleMatch = trimmed.match(/<title>([\s\S]*?)<\/title>/)
-  let refMatch = trimmed.match(/<refermsg[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/refermsg>/)
-  // todo 解析失败，再看下
-  if (refMatch?.includes("xml") || refMatch?.includes("msg")) {
-    refMatch = ['较复杂的引用消息，略过']
-  }
-  if (!titleMatch || !refMatch) return null
-  const title = decodeXmlEntities(titleMatch[1])
-  const ref = decodeXmlEntities(refMatch[1])
-  return `${ref}\n-----\n${title}`
 }
 
 const parser = new XMLParser({
