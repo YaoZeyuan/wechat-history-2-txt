@@ -3,6 +3,7 @@ import fs from 'fs'
 import type { PrismaClient } from '@prisma/client'
 import { formatDate, formatMonth, sanitizeFileName, mapContentByType, formatYmd } from './utils/format.js'
 import { fetchMessagesByChat, fetchMessageTalkerStats } from './services/messages.js'
+import dayjs from 'dayjs'
 
 
 /**
@@ -51,7 +52,14 @@ type ExportChatParams = {
 export async function exportChatContent(params: ExportChatParams) {
   const { prisma, chatId, contacts, chatrooms, selfId, selfNickname, outDir } = params
   const rows = await fetchMessagesByChat(prisma, chatId)
-  const items: Array<{ time: number; sender: string; content: string; type: number }> = []
+  const items: Array<{
+    time: number;
+    // 微信备注名，对应conRemark字段
+    customerRemarkName: string;
+    // 原始姓名，对应nickname字段
+    sender: string;
+    content: string; type: number
+  }> = []
   for (const m of rows) {
     const isGroup = chatId.endsWith('@chatroom')
     let rawContent: string
@@ -87,14 +95,22 @@ export async function exportChatContent(params: ExportChatParams) {
       }
     }
     const mapped = mapContentByType(m.type, content)
-    items.push({ time: m.createTime, sender: senderName || senderId || '未知', content: mapped, type: m.type })
+    items.push({
+      time: m.createTime,
+      customerRemarkName: "",
+      sender: senderName || senderId || '未知',
+      content: mapped,
+      type: m.type
+    })
   }
 
   items.sort((a, b) => a.time - b.time)
   if (!items.length) return
   const isGroup = chatId.endsWith('@chatroom')
   const chatDisplayName = contacts.get(chatId) || (isGroup ? chatrooms.get(chatId) || chatId : chatId)
-  const folderName = `${sanitizeFileName(chatDisplayName)}-${sanitizeFileName(chatId)}`
+  const startAtMonthStr = dayjs(items[0].time).format("YYYY-MM")
+  const endAtMonthStr = dayjs(items[items.length - 1].time).format("YYYY-MM")
+  const folderName = `${sanitizeFileName(chatDisplayName)}-${sanitizeFileName(chatId)}-总对话数${items.length}条-${startAtMonthStr}-${endAtMonthStr}`
   const chatDir = path.join(outDir, folderName)
   fs.mkdirSync(chatDir, { recursive: true })
 
@@ -146,23 +162,40 @@ export async function exportChatContent(params: ExportChatParams) {
     const fname = `${batchStart}-${batchEnd}.txt`
     fs.writeFileSync(path.join(chatDir, fname), batchLines.join('\n'), { encoding: 'utf8' })
   }
+
   // 输出全量聊天配置
   const allRecordFileName = `all-record.json`
   fs.writeFileSync(path.join(chatDir, allRecordFileName), JSON.stringify(items, null, 2), { encoding: 'utf8' })
   const summaryFileName = `summary.json`
   const summary: Record<string, {
+    sender: string;
+    customerRemarkName: string,
+    type: number;
     totalMessage: number
     totalWord: number
+    firstSendAt: number
+    lastSendAt: number
+    firstSendStr: string
+    lastSendStr: string
   }> = {}
   for (const item of items) {
     if (summary[item.sender] === undefined) {
       summary[item.sender] = {
+        sender: item.sender,
+        customerRemarkName: "",
+        type: item.type,
+        firstSendAt: item.time,
+        lastSendAt: item.time,
+        firstSendStr: dayjs(item.time).format("YYYY-MM-DD HH:mm:ss"),
+        lastSendStr: dayjs(item.time).format("YYYY-MM-DD HH:mm:ss"),
         totalMessage: 0,
         totalWord: 0
       }
-      summary[item.sender].totalMessage += 1
-      summary[item.sender].totalWord += item.content.length
     }
+    summary[item.sender].totalMessage += 1
+    summary[item.sender].totalWord += item.content.length
+    summary[item.sender].lastSendAt = item.time
+    summary[item.sender].lastSendStr = dayjs(item.time).format("YYYY-MM-DD HH:mm:ss")
   }
   // 导出汇总统计结果，按灌水数从高到低排序
   const summaryList = Object.values(summary).sort((a, b) => {
