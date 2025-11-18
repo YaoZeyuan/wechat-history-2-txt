@@ -30,6 +30,8 @@ export async function exportSummary(outDir: string, prisma: PrismaClient, contac
       最后一条对话日期: formatYmd(s.lastTime),
     }
   })
+  // 按会话条数，从高到低排序
+  items.sort((a, b) => { return b.总对话数据条数 - a.总对话数据条数 })
   fs.writeFileSync(path.join(idxDir, 'records.json'), JSON.stringify(items, null, 2), { encoding: 'utf8' })
 }
 
