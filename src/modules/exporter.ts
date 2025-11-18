@@ -149,4 +149,24 @@ export async function exportChatContent(params: ExportChatParams) {
   // 输出全量聊天配置
   const allRecordFileName = `all-record.json`
   fs.writeFileSync(path.join(chatDir, allRecordFileName), JSON.stringify(items, null, 2), { encoding: 'utf8' })
+  const summaryFileName = `summary.json`
+  const summary: Record<string, {
+    totalMessage: number
+    totalWord: number
+  }> = {}
+  for (const item of items) {
+    if (summary[item.sender] === undefined) {
+      summary[item.sender] = {
+        totalMessage: 0,
+        totalWord: 0
+      }
+      summary[item.sender].totalMessage += 1
+      summary[item.sender].totalWord += item.content.length
+    }
+  }
+  // 导出汇总统计结果，按灌水数从高到低排序
+  const summaryList = Object.values(summary).sort((a, b) => {
+    return b.totalMessage - a.totalMessage
+  })
+  fs.writeFileSync(path.join(chatDir, summaryFileName), JSON.stringify(summaryList, null, 2), { encoding: 'utf8' })
 }
