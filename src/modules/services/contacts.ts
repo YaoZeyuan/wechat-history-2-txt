@@ -17,14 +17,24 @@ export async function fetchSelfInfo(prisma: PrismaClient) {
 }
 
 /**
- * 获取联系人映射（username -> 显示名）, 优先备注，其次昵称
+ * 获取联系人映射（username -> 显示名&昵称）, 优先备注，其次昵称
  */
 export async function fetchContacts(prisma: PrismaClient) {
-  const contactsRows = await prisma.$queryRaw<Array<{ username: string; conRemark: string | null; nickname: string | null }>>`SELECT username, conRemark, nickname FROM rcontact`
-  const contacts = new Map<string, string>()
+  const contactsRows = await prisma.$queryRaw<Array<{
+    username: string;
+    conRemark: string | null;
+    nickname: string | null
+  }>>`SELECT username, conRemark, nickname FROM rcontact`
+  const contacts = new Map<string, {
+    conRemark: string;
+    nickname: string;
+  }>()
   for (const r of contactsRows) {
     const name = (r.conRemark && r.conRemark.trim().length ? r.conRemark : r.nickname) || ''
-    contacts.set(r.username, name)
+    contacts.set(r.username, {
+      nickname: r.nickname || r.username || "",
+      conRemark: name
+    })
   }
   return contacts
 }
@@ -32,13 +42,22 @@ export async function fetchContacts(prisma: PrismaClient) {
 /**
  * 获取群聊映射（chatroomname -> 显示名），优先 chatroom.displayname，其次 rcontact.nickname
  */
-export async function fetchChatrooms(prisma: PrismaClient, contacts: Map<string, string>) {
+export async function fetchChatrooms(prisma: PrismaClient, contacts: Map<string, {
+  conRemark: string
+  nickname: string
+}>) {
   const chatroomRows = await prisma.$queryRaw<Array<{ chatroomname: string; displayname: string | null }>>`SELECT chatroomname, displayname FROM chatroom`
-  const chatrooms = new Map<string, string>()
+  const chatrooms = new Map<string, {
+    conRemark: string
+    nickname: string
+  }>()
   for (const r of chatroomRows) {
     const id = r.chatroomname
-    const name = r.displayname || contacts.get(id) || ''
-    chatrooms.set(id, name)
+    const name = r.displayname || contacts.get(id)?.conRemark || contacts.get(id)?.nickname || ''
+    chatrooms.set(id, {
+      conRemark: name,
+      nickname: r.displayname || contacts.get(id)?.nickname || ''
+    })
   }
   return chatrooms
 }

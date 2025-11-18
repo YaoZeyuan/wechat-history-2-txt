@@ -13,14 +13,20 @@ import dayjs from 'dayjs'
  * @param contacts 
  * @param chatrooms 
  */
-export async function exportSummary(outDir: string, prisma: PrismaClient, contacts: Map<string, string>, chatrooms: Map<string, string>) {
+export async function exportSummary(outDir: string, prisma: PrismaClient, contacts: Map<string, {
+  conRemark: string
+  nickname: string
+}>, chatrooms: Map<string, {
+  conRemark: string
+  nickname: string
+}>) {
   const idxDir = path.join(outDir, '_index')
   fs.mkdirSync(idxDir, { recursive: true })
   const stats = await fetchMessageTalkerStats(prisma)
   const items = stats.map(s => {
     const id = s.talker
     const isGroup = id.endsWith('@chatroom')
-    const name = contacts.get(id) || (isGroup ? chatrooms.get(id) || id : id)
+    const name = contacts.get(id)?.conRemark || contacts.get(id)?.nickname || (isGroup ? chatrooms.get(id)?.conRemark || id : id)
     const type = isGroup ? '微信群' : (contacts.has(id) ? '微信联系人' : '其他')
     return {
       id,
@@ -39,8 +45,14 @@ export async function exportSummary(outDir: string, prisma: PrismaClient, contac
 type ExportChatParams = {
   prisma: PrismaClient
   chatId: string
-  contacts: Map<string, string>
-  chatrooms: Map<string, string>
+  contacts: Map<string, {
+    conRemark: string
+    nickname: string
+  }>
+  chatrooms: Map<string, {
+    conRemark: string
+    nickname: string
+  }>
   selfId: string
   selfNickname: string
   outDir: string
@@ -54,9 +66,11 @@ export async function exportChatContent(params: ExportChatParams) {
   const rows = await fetchMessagesByChat(prisma, chatId)
   const items: Array<{
     time: number;
-    // 微信备注名，对应conRemark字段
-    customerRemarkName: string;
     // 原始姓名，对应nickname字段
+    nickname: string,
+    // 微信备注名，对应conRemark字段
+    conRemark: string,
+    // 发送者名字，保持不变，方便后续使用
     sender: string;
     content: string; type: number
   }> = []
@@ -73,31 +87,41 @@ export async function exportChatContent(params: ExportChatParams) {
     let senderId = selfId
     let senderName = selfNickname
     let content = rawContent || ''
+    let nickname = ""
+    let conRemark = ""
     if (isGroup) {
       if (m.isSend === 1) {
         senderId = selfId
-        senderName = contacts.get(selfId) || selfNickname
+        senderName = contacts.get(selfId)?.nickname || contacts.get(selfId)?.conRemark || selfNickname
+        nickname = senderName
+        conRemark = contacts.get(selfId)?.conRemark || contacts.get(selfId)?.nickname || selfNickname
       } else {
         const colonIdx = rawContent.indexOf(':')
         const nlIdx = rawContent.indexOf('\n')
         const talkerId = colonIdx >= 0 ? rawContent.slice(0, colonIdx) : ''
         senderId = talkerId || ''
-        senderName = (talkerId && contacts.get(talkerId)) || talkerId || '未知成员'
+        senderName = (talkerId && contacts.get(talkerId)?.nickname) || talkerId || '未知成员'
+        nickname = senderName
+        conRemark = (talkerId && contacts.get(talkerId)?.conRemark) || nickname
         content = nlIdx >= 0 ? rawContent.slice(nlIdx + 1) : rawContent
+
       }
     } else {
       if (m.isSend === 1) {
         senderId = selfId
-        senderName = contacts.get(selfId) || selfNickname
+        senderName = contacts.get(selfId)?.nickname || selfNickname
       } else {
         senderId = chatId
-        senderName = contacts.get(chatId) || chatId
+        senderName = contacts.get(chatId)?.nickname || chatId
+        nickname = senderName
+        conRemark = contacts.get(chatId)?.conRemark || nickname
       }
     }
     const mapped = mapContentByType(m.type, content)
     items.push({
       time: m.createTime,
-      customerRemarkName: "",
+      nickname,
+      conRemark,
       sender: senderName || senderId || '未知',
       content: mapped,
       type: m.type
@@ -107,7 +131,7 @@ export async function exportChatContent(params: ExportChatParams) {
   items.sort((a, b) => a.time - b.time)
   if (!items.length) return
   const isGroup = chatId.endsWith('@chatroom')
-  const chatDisplayName = contacts.get(chatId) || (isGroup ? chatrooms.get(chatId) || chatId : chatId)
+  const chatDisplayName = contacts.get(chatId)?.nickname || (isGroup ? chatrooms.get(chatId)?.nickname || chatId : chatId)
   const startAtMonthStr = dayjs(items[0].time).format("YYYY-MM")
   const endAtMonthStr = dayjs(items[items.length - 1].time).format("YYYY-MM")
   const folderName = `${sanitizeFileName(chatDisplayName)}-${sanitizeFileName(chatId)}-总对话数${items.length}条-${startAtMonthStr}-${endAtMonthStr}`
@@ -169,7 +193,7 @@ export async function exportChatContent(params: ExportChatParams) {
   const summaryFileName = `summary.json`
   const summary: Record<string, {
     sender: string;
-    customerRemarkName: string,
+    conRemark: string,
     type: number;
     totalMessage: number
     totalWord: number
@@ -182,7 +206,7 @@ export async function exportChatContent(params: ExportChatParams) {
     if (summary[item.sender] === undefined) {
       summary[item.sender] = {
         sender: item.sender,
-        customerRemarkName: "",
+        conRemark: item.conRemark,
         type: item.type,
         firstSendAt: item.time,
         lastSendAt: item.time,
