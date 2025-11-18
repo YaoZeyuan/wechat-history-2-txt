@@ -2,7 +2,7 @@ import { ensureDbFile, loadEnvConfig, parseSelectionArgs } from './modules/confi
 import { prisma } from './modules/db.js'
 import { getContentTypeDemo } from './modules/utils/format.js'
 import { fetchContacts, fetchChatrooms, fetchSelfInfo } from './modules/services/contacts.js'
-import { exportLists, exportChatContent } from './modules/exporter.js'
+import { exportLists, exportChatContent, exportSummary } from './modules/exporter.js'
 import path from 'path'
 import fs from 'fs'
 
@@ -16,6 +16,7 @@ async function main() {
 
 
   await exportLists(outDir, contacts, chatrooms)
+  await exportSummary(outDir, prisma, contacts, chatrooms)
 
   const { uids, type } = parseSelectionArgs()
   const selectedChats: string[] = []

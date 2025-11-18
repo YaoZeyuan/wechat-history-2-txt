@@ -1,19 +1,36 @@
 import path from 'path'
 import fs from 'fs'
 import type { PrismaClient } from '@prisma/client'
-import { formatDate, formatMonth, sanitizeFileName, mapContentByType } from './utils/format.js'
-import { fetchMessagesByChat } from './services/messages.js'
+import { formatDate, formatMonth, sanitizeFileName, mapContentByType, formatYmd } from './utils/format.js'
+import { fetchMessagesByChat, fetchMessageTalkerStats } from './services/messages.js'
+
 
 /**
- * 导出联系人与群聊列表到 output/_index
+ * 导出聊天汇总记录
+ * @param outDir 
+ * @param prisma 
+ * @param contacts 
+ * @param chatrooms 
  */
-export async function exportLists(outDir: string, contacts: Map<string, string>, chatrooms: Map<string, string>) {
+export async function exportSummary(outDir: string, prisma: PrismaClient, contacts: Map<string, string>, chatrooms: Map<string, string>) {
   const idxDir = path.join(outDir, '_index')
   fs.mkdirSync(idxDir, { recursive: true })
-  const contactsLines = Array.from(contacts.entries()).map(([id, name]) => `${name || id} ${id}`)
-  const chatroomLines = Array.from(chatrooms.entries()).map(([id, name]) => `${name || id} ${id}`)
-  fs.writeFileSync(path.join(idxDir, 'contacts.txt'), contactsLines.join('\n'), { encoding: 'utf8' })
-  fs.writeFileSync(path.join(idxDir, 'chatrooms.txt'), chatroomLines.join('\n'), { encoding: 'utf8' })
+  const stats = await fetchMessageTalkerStats(prisma)
+  const items = stats.map(s => {
+    const id = s.talker
+    const isGroup = id.endsWith('@chatroom')
+    const name = contacts.get(id) || (isGroup ? chatrooms.get(id) || id : id)
+    const type = isGroup ? '微信群' : (contacts.has(id) ? '微信联系人' : '其他')
+    return {
+      id,
+      名称: name || id,
+      类型: type,
+      总对话数据条数: s.total,
+      第一条对话日期: formatYmd(s.firstTime),
+      最后一条对话日期: formatYmd(s.lastTime),
+    }
+  })
+  fs.writeFileSync(path.join(idxDir, 'records.json'), JSON.stringify(items, null, 2), { encoding: 'utf8' })
 }
 
 type ExportChatParams = {

@@ -26,6 +26,14 @@ export function formatMonth(tsMs: number): string {
   return `${y}-${m}`
 }
 
+export function formatYmd(tsMs: number): string {
+  const d = new Date(tsMs)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 /**
  * 清理文件名非法字符
  */

@@ -20,3 +20,20 @@ export async function fetchMessagesByChat(prisma: PrismaClient, chatId: string) 
   })
   return rows
 }
+
+export async function fetchMessageTalkerStats(prisma: PrismaClient) {
+  const rawRows = await prisma.$queryRaw<Array<{ talker: string; total: number; minCreateTime: string; maxCreateTime: string }>>`
+    SELECT talker, COUNT(1) AS total, CAST(MIN(createTime) AS TEXT) AS minCreateTime, CAST(MAX(createTime) AS TEXT) AS maxCreateTime
+    FROM message GROUP BY talker
+  `
+  return rawRows.map(r => {
+    const minSec = Number.parseInt(`${BigInt(r.minCreateTime) / BigInt(1000)}`)
+    const maxSec = Number.parseInt(`${BigInt(r.maxCreateTime) / BigInt(1000)}`)
+    return {
+      talker: r.talker,
+      total: Number(r.total as any),
+      firstTime: minSec * 1000,
+      lastTime: maxSec * 1000,
+    }
+  })
+}
