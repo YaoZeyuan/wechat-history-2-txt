@@ -5,6 +5,12 @@ import dayjs from "dayjs";
 const ms2Ymd = (ms) => {
   return dayjs(ms).format("YYYY-MM-DD HH:mm:ss");
 };
+
+// 导出到output中，防止误提交
+const outputDir = path.resolve("./output/个人聊天内容导出");
+fs.mkdirSync(outputDir, {
+  recursive: true,
+});
 const targetUserNickName = "";
 const targetChatroom = "";
 
@@ -24,6 +30,9 @@ const line = targetRecordList.map((item) => {
   return `${item.nickname} ${ms2Ymd(item.time)}\n${item.content}\n`;
 });
 
-const targetFile = path.resolve(`./${targetUserNickName}_发言合集.txt`);
+const targetFile = path.resolve(
+  outputDir,
+  `./${targetChatroom}中_${targetUserNickName}_发言合集.txt`
+);
 
 fs.writeFileSync(targetFile, line.join("\n"));
